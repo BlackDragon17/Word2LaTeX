@@ -2,19 +2,39 @@ import clipboard from "clipboardy";
 import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 
+const openingChars = ["(", "“"];
+const closingChars = [")", ",", ".", ";", "“"];
+
+/**
+ * Cleans the given string by trimming excess whitespaces and removing newlines.
+ *
+ * @param {string} val string to clean.
+ * @returns {string} cleaned string.
+ */
 function cleanString(val) {
     return val.replaceAll("\n", " ")
         .replace(/\s{2,}/g, " ")
         .trim();
 }
 
+/**
+ * Parses the content of an HTMLElement. Root of the recursion tree.
+ *
+ * @param {HTMLElement} element element to parse.
+ * @returns {{fontSize: number, text: string}} content of the parsed element.
+ */
 function parseElementContent(element) {
     const result = {text: "", fontSize: 0};
 
     for (let i = 0; i < element.childNodes.length; i++) {
         const isLastNode = i === element.childNodes.length - 1;
         const resultPart = parseNodeContent(element.childNodes[i], isLastNode);
+
+        if (result.text && resultPart.text && closingChars.some(char => char === resultPart.text[0])) {
+            result.text = result.text.trimEnd();
+        }
         result.text += resultPart.text;
+
         if (result.fontSize < resultPart.fontSize) {
             result.fontSize = resultPart.fontSize;
         }
@@ -65,6 +85,13 @@ function parseElementContent(element) {
     return result;
 }
 
+/**
+ * Parses the content of a child-node. Leaf of the recursion tree when Node = Text.
+ *
+ * @param {Node} node node to parse.
+ * @param {boolean} isLastNode whether this is the last child-node of the parent element.
+ * @returns {{fontSize: number, text: string}} content of the parsed node.
+ */
 function parseNodeContent(node, isLastNode) {
     let result = {text: "", fontSize: 0};
 
@@ -76,7 +103,7 @@ function parseNodeContent(node, isLastNode) {
         result = parseElementContent(node);
     }
 
-    if (isLastNode || result.text[result.text.length - 1] === "(") {
+    if (isLastNode || openingChars.some(char => char === result.text[result.text.length - 1])) {
         return result;
     }
 
@@ -95,7 +122,7 @@ const {window} = new JSDOM(htmlFile);
 let latex = "";
 const paragraphs = window.document.querySelectorAll("html > body > p");
 for (const paragraph of paragraphs) {
-    latex = latex.concat(parseElementContent(paragraph).text);
+    latex += parseElementContent(paragraph).text;
 }
 
 // console.log("Final latex:");
