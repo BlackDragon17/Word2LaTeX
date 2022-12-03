@@ -3,13 +3,13 @@ import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 
 const openingChars = ["(", "“"];
-const closingChars = [")", ",", ".", ";", "“"];
+const closingChars = [")", ",", ".", ";", "”"];
 
 /**
- * Cleans the given string by trimming excess whitespaces and removing newlines.
+ * Returns a new string, cleaned of excess whitespaces and newlines.
  *
  * @param {string} val string to clean.
- * @returns {string} cleaned string.
+ * @returns {string} new cleaned string.
  */
 function cleanString(val) {
     return val.replaceAll("\n", " ")
@@ -49,40 +49,63 @@ function parseElementContent(element) {
     if (!result.text) {
         return result;
     }
+
     switch (element.nodeName) {
         case "I":
             result.text = `\\textit{${result.text}}`;
-            break;
+            return result;
 
         case "B":
             if (result.fontSize < 12) {
                 result.text = `\\textbf{${result.text}}`;
             }
-            break;
+            return result;
 
         case "P":
+            // Handle headings
             switch (result.fontSize) {
                 case 18:
                     result.text = result.text.replace(/Chapter \d+: /, "\\chapter{");
-                    result.text += "}";
-                    break;
+                    result.text += "}\n\n";
+                    return result;
                 case 16:
                     result.text = result.text.replace(/(\d.)+\d /, "\\section{");
-                    result.text += "}";
-                    break;
+                    result.text += "}\n\n";
+                    return result;
                 case 14:
                     result.text = result.text.replace(/(\d.)+\d /, "\\subsection{");
-                    result.text += "}";
-                    break;
+                    result.text += "}\n\n";
+                    return result;
                 case 12:
-                    result.text = `\\subsubsection{${result.text}}`;
-                    break;
+                    result.text = `\\subsubsection{${result.text}}\n\n`;
+                    return result;
+            }
+
+            // Handle unsorted lists
+            switch (element.className) {
+                case "MsoListParagraphCxSpFirst":
+                    result.text = result.text.replace("·", "");
+                    result.text = cleanString(result.text);
+                    result.text = `\\begin{itemize}\n\\item ${result.text}\n`;
+                    return result;
+                case "MsoListParagraphCxSpMiddle":
+                    result.text = result.text.replace("·", "");
+                    result.text = cleanString(result.text);
+                    result.text = `\\item ${result.text}\n`;
+                    return result;
+                case "MsoListParagraphCxSpLast":
+                    result.text = result.text.replace("·", "");
+                    result.text = cleanString(result.text);
+                    result.text = `\\item ${result.text}\n\\end{itemize}\n\n`;
+                    return result;
             }
 
             result.text += "\n\n";
-            break;
+            return result;
+
+        default:
+            return result;
     }
-    return result;
 }
 
 /**
