@@ -1,6 +1,6 @@
 # Word2LaTeX
 
-Quick and dirty Word to LaTeX snippet in-clipboard converter. Only works on Windows and requires Powershell 7.2+ and Node 14+.
+Quick and dirty Word to LaTeX snippet in-clipboard converter. Requires Windows, Powershell 7.2+, and Node 14+.
 
 ## Usage
 
@@ -11,5 +11,5 @@ Quick and dirty Word to LaTeX snippet in-clipboard converter. Only works on Wind
 ## Features
 
 - Supports italics, bold, and unordered lists
-- Makes paragraphs with font sizes 18, 16, 14, 12 into chapters, sections, subsection, and subsubsections respectively
-- Replaces Word dashes with em-dashes and "\[Citation\]" with "\cite{Citation}"
+- Makes paragraphs with font sizes 18, 16, 14, 12 into chapters, sections, subsections, and subsubsections respectively
+- Replaces Word dashes with em-dashes and "\[Citations\]" with "\cite{Citations}"
