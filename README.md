@@ -12,4 +12,4 @@ Quick and dirty Word to LaTeX snippet in-clipboard converter. Requires Windows, 
 
 - Supports italics, bold, and unordered lists
 - Makes paragraphs with font sizes 18, 16, 14, 12 into chapters, sections, subsections, and subsubsections respectively
-- Replaces Word dashes with em-dashes and "\[Citations\]" with "\cite{Citations}"
+- Replaces Word dashes with em-dashes, "\[citation\]" with "\cite{citation}", and "figure abc" with "figure \ref{fig:abc}"
