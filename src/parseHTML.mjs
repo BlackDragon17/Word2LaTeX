@@ -155,7 +155,7 @@ function parseNodeContent(node, isLastNode) {
         result.text = cleanString(node.data);
         result.text = result.text.replaceAll(/\[\w+(, \w+)*\]/g, match => `\\cite{${match.slice(1, -1)}}`);
         result.text = result.text.replaceAll(" – ", "\\textemdash{}");
-        result.text = result.text.replaceAll(/(?<=[Ff]igure )\w[\w-.]+/g, match => `\\ref{fig:${match}}`);
+        result.text = result.text.replaceAll(/(?<=[Ff]igure )\w[\w|-]+\w.\w+/g, match => `\\ref{fig:${match}}`);
     } else if (node.nodeType === window.Node.ELEMENT_NODE) {
         result = parseElementContent(node);
     }
