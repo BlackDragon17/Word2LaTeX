@@ -1,6 +1,7 @@
 import clipboard from "clipboardy";
 import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
+import ParseResult from "./ParseResult.mjs";
 
 const openingChars = ["(", "“"];
 const closingChars = [")", ",", ".", ";", "”"];
@@ -18,13 +19,30 @@ function cleanString(val) {
 }
 
 /**
+ * Iterates over the paragraph elements at the root of the document.
+ *
+ * @param {NodeList<HTMLParagraphElement>} rootParagraphs list of document root paragraph elements.
+ * @returns {string} final latex string.
+ */
+function parseRootParagraphs(rootParagraphs) {
+    let finalLatex = "";
+
+    for (const paragraph of rootParagraphs) {
+        finalLatex += parseElementContent(paragraph, true).text;
+    }
+
+    return finalLatex;
+}
+
+/**
  * Parses the content of an HTMLElement. Root of the recursion tree.
  *
  * @param {HTMLElement} element element to parse.
- * @returns {{fontSize: number, text: string}} content of the parsed element.
+ * @param {boolean} isRoot whether the current element is a root element.
+ * @returns {ParseResult} content of the parsed element.
  */
-function parseElementContent(element) {
-    const result = {text: "", fontSize: 0};
+function parseElementContent(element, isRoot = false) {
+    const result = new ParseResult();
 
     for (let i = 0; i < element.childNodes.length; i++) {
         const isLastNode = i === element.childNodes.length - 1;
@@ -46,6 +64,9 @@ function parseElementContent(element) {
         result.fontSize = elementFontSize;
     }
 
+    if (isRoot) {
+        return parseRootParagraph(element, result);
+    }
     if (!result.text) {
         return result;
     }
@@ -61,51 +82,63 @@ function parseElementContent(element) {
             }
             return result;
 
-        case "P":
-            // Handle headings
-            switch (result.fontSize) {
-                case 18:
-                    result.text = result.text.replace(/Chapter \d+: /, "\\chapter{");
-                    result.text += "}\n\n";
-                    return result;
-                case 16:
-                    result.text = result.text.replace(/(\d.)+\d /, "\\section{");
-                    result.text += "}\n\n";
-                    return result;
-                case 14:
-                    result.text = result.text.replace(/(\d.)+\d /, "\\subsection{");
-                    result.text += "}\n\n";
-                    return result;
-                case 12:
-                    result.text = `\\subsubsection{${result.text}}\n\n`;
-                    return result;
-            }
-
-            // Handle unsorted lists
-            switch (element.className) {
-                case "MsoListParagraphCxSpFirst":
-                    result.text = result.text.replace("·", "");
-                    result.text = cleanString(result.text);
-                    result.text = `\\begin{itemize}\n\\item ${result.text}\n`;
-                    return result;
-                case "MsoListParagraphCxSpMiddle":
-                    result.text = result.text.replace("·", "");
-                    result.text = cleanString(result.text);
-                    result.text = `\\item ${result.text}\n`;
-                    return result;
-                case "MsoListParagraphCxSpLast":
-                    result.text = result.text.replace("·", "");
-                    result.text = cleanString(result.text);
-                    result.text = `\\item ${result.text}\n\\end{itemize}\n\n`;
-                    return result;
-            }
-
-            result.text += "\n\n";
-            return result;
-
         default:
             return result;
     }
+}
+
+/**
+ * Logic for parsing the root paragraph elements.
+ *
+ * @param {HTMLParagraphElement} element element to parse.
+ * @param {ParseResult} result the result object built from the paragraph's child nodes.
+ * @returns {ParseResult} the final result.
+ */
+function parseRootParagraph(element, result) {
+    if (!result.text) {
+        return result;
+    }
+
+    // Handle headings
+    switch (result.fontSize) {
+        case 18:
+            result.text = result.text.replace(/Chapter \d+: /, "\\chapter{");
+            result.text += "}\n\n";
+            return result;
+        case 16:
+            result.text = result.text.replace(/(\d.)+\d /, "\\section{");
+            result.text += "}\n\n";
+            return result;
+        case 14:
+            result.text = result.text.replace(/(\d.)+\d /, "\\subsection{");
+            result.text += "}\n\n";
+            return result;
+        case 12:
+            result.text = `\\subsubsection{${result.text}}\n\n`;
+            return result;
+    }
+
+    // Handle unsorted lists
+    switch (element.className) {
+        case "MsoListParagraphCxSpFirst":
+            result.text = result.text.replace("·", "");
+            result.text = cleanString(result.text);
+            result.text = `\\begin{itemize}\n\\item ${result.text}\n`;
+            return result;
+        case "MsoListParagraphCxSpMiddle":
+            result.text = result.text.replace("·", "");
+            result.text = cleanString(result.text);
+            result.text = `\\item ${result.text}\n`;
+            return result;
+        case "MsoListParagraphCxSpLast":
+            result.text = result.text.replace("·", "");
+            result.text = cleanString(result.text);
+            result.text = `\\item ${result.text}\n\\end{itemize}\n\n`;
+            return result;
+    }
+
+    result.text += "\n\n";
+    return result;
 }
 
 /**
@@ -113,16 +146,16 @@ function parseElementContent(element) {
  *
  * @param {Node} node node to parse.
  * @param {boolean} isLastNode whether this is the last child-node of the parent element.
- * @returns {{fontSize: number, text: string}} content of the parsed node.
+ * @returns {ParseResult} content of the parsed node.
  */
 function parseNodeContent(node, isLastNode) {
-    let result = {text: "", fontSize: 0};
+    let result = new ParseResult();
 
     if (node.nodeType === window.Node.TEXT_NODE) {
         result.text = cleanString(node.data);
         result.text = result.text.replaceAll(/\[\w+(, \w+)*\]/g, match => `\\cite{${match.slice(1, -1)}}`);
         result.text = result.text.replaceAll(" – ", "\\textemdash{}");
-        result.text = result.text.replaceAll(/(?<=[Ff]igure )\w+/g, match => `\\ref{fig:${match}}`);
+        result.text = result.text.replaceAll(/(?<=[Ff]igure )\w[\w-.]+/g, match => `\\ref{fig:${match}}`);
     } else if (node.nodeType === window.Node.ELEMENT_NODE) {
         result = parseElementContent(node);
     }
@@ -143,13 +176,7 @@ if (!filePath) {
 const htmlFile = readFileSync(filePath, {encoding: "utf8"});
 const {window} = new JSDOM(htmlFile);
 
-let latex = "";
 const paragraphs = window.document.querySelectorAll("html > body > p");
-for (const paragraph of paragraphs) {
-    latex += parseElementContent(paragraph).text;
-}
-
-// console.log("Final latex:");
-// console.log(latex);
+const latex = parseRootParagraphs(paragraphs);
 
 clipboard.writeSync(latex);

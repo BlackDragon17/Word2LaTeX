@@ -4,7 +4,7 @@
   "author": "BlackDragon17",
   "description": "Converts copied Word document fragments to LaTeX in the clipboard.",
   "homepage": "https://github.com/BlackDragon17/Word2LaTeX",
-  "main": "RunMe.ps1",
+  "main": "src/RunMe.ps1",
   "dependencies": {
     "clipboardy": "^3.0.0",
     "jsdom": "^20.0.3"

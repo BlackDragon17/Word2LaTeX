@@ -9,6 +9,6 @@ if (!$Html)
 }
 
 $Html | Out-File -FilePath './tempHtmlFile.html'
-node ./index.mjs './tempHtmlFile.html'
+node ./parseHTML.mjs './tempHtmlFile.html'
 # Setting the clipboard is handled in Node.js script
 Remove-Item './tempHtmlFile.html'
