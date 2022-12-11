@@ -17,13 +17,20 @@ function cleanString(val) {
 }
 
 /**
- * Turns heading titles (with the leading numbers already removed) into kebab-case labels.
+ * Produces a Latex heading with a label.
  *
- * @param {string} heading normal heading.
- * @returns {string} kebab-case heading label.
+ * @param {string} headingType the heading type to use (see {@link sectionNames}).
+ * @param {string} heading the heading text.
+ * @param {string|null} label the heading label. Only added if not null.
+ * @return {string} a heading in Latex syntax with a label.
  */
-function headingToLabel(heading) {
-    return heading.trim().toLowerCase().replace(" ", "-");
+function getHeadingString(headingType, heading, label) {
+    let result = `\\${headingType}{${heading.trim()}}`;
+    if (label) {
+        result += ` \\label{${label.trim()}}`;
+    }
+    result += "\n\n";
+    return result;
 }
 
 /**
@@ -108,19 +115,29 @@ function parseRootParagraph(element, result) {
     // Handle headings
     switch (result.fontSize) {
         case 18:
-            result.text = result.text.replace(/^Chapter \d+: /, "");
-            result.text = `\\chapter{${result.text}} \\label{${headingToLabel(result.text)}}\n\n`;
+            result.text = getHeadingString(
+                "chapter",
+                result.text.replace(/^Chapter \d+:? /, ""),
+                result.text.match(/(?<=^Chapter )\d+(?=:? \w)/)?.[0]
+            );
             return result;
         case 16:
-            result.text = result.text.replace(/^(\d.)+\d /, "");
-            result.text = `\\section{${result.text}} \\label{${headingToLabel(result.text)}}\n\n`;
+            result.text = getHeadingString(
+                "section",
+                result.text.replace(/^\d+(\.\d+)* /, ""),
+                result.text.match(/^\d+(\.\d+)*(?= \w)/)?.[0]);
             return result;
         case 14:
-            result.text = result.text.replace(/^(\d.)+\d /, "");
-            result.text = `\\subsection{${result.text}} \\label{${headingToLabel(result.text)}}\n\n`;
+            result.text = getHeadingString(
+                "subsection",
+                result.text.replace(/^\d+(\.\d+)* /, ""),
+                result.text.match(/^\d+(\.\d+)*(?= \w)/)?.[0]);
             return result;
         case 12:
-            result.text = `\\subsubsection{${result.text}} \\label{${headingToLabel(result.text)}}\n\n`;
+            result.text = getHeadingString(
+                "subsubsection",
+                result.text.replace(/^\d+(\.\d+)* /, ""),
+                result.text.match(/^\d+(\.\d+)*(?= \w)/)?.[0]);
             return result;
     }
 
@@ -168,7 +185,7 @@ function parseNodeContent(node) {
             match => handleFigures(match)
         );
         // make `section xyz` into `section \ref{xyz}`
-        // (?<=(section|chapter) )\w+((-|’)\w+)*
+        result.text = result.text.replaceAll(/(?<=(section|chapter) )\d+(\.\d+)*/g, match => `\\ref{${match}}`);
     } else if (node.nodeType === window.Node.ELEMENT_NODE) {
         result = parseElementContent(node);
     }
