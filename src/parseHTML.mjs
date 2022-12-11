@@ -44,7 +44,7 @@ function parseElementContent(element, isRoot = false) {
 
     for (let i = 0; i < element.childNodes.length; i++) {
         const isLastNode = i === element.childNodes.length - 1;
-        const resultPart = parseNodeContent(element.childNodes[i], isLastNode);
+        const resultPart = parseNodeContent(element.childNodes[i]);
 
         result.text += resultPart.text;
 
@@ -141,23 +141,58 @@ function parseRootParagraph(element, result) {
  * Parses the content of a child-node. Leaf of the recursion tree when Node = Text.
  *
  * @param {Node} node node to parse.
- * @param {boolean} isLastNode whether this is the last child-node of the parent element.
  * @returns {ParseResult} content of the parsed node.
  */
-function parseNodeContent(node, isLastNode) {
+function parseNodeContent(node) {
     let result = new ParseResult();
 
     if (node.nodeType === window.Node.TEXT_NODE) {
         result.text = cleanString(node.data);
+        // make en dash into em dash with no spaces
         result.text = result.text.replaceAll(" – ", "\\textemdash{}");
+        // make `[xyz]` into `\cite{xyz}`
         result.text = result.text.replaceAll(/\[\w+(-\w+)*(, \w+(-\w+)*)*\]/g, match => `\\cite{${match.slice(1, -1)}}`);
+        // make `figure xyz` into `\ref{fig:xyz}`
         result.text = result.text.replaceAll(/(?<=[Ff]igure )\w+(-\w+)*(\.\w+)?/g, match => `\\ref{fig:${match}}`);
-        result.text = cleanString(result.text);
+        result.text = result.text.replaceAll(
+            /(?<=[Ff]igures )(\w+(-\w+)*(\.\w+)?)(, (\w+(-\w+)*(\.\w+)?))*(,? and (\w+(-\w+)*(\.\w+)?))/g,
+            match => handleFigures(match)
+        );
     } else if (node.nodeType === window.Node.ELEMENT_NODE) {
         result = parseElementContent(node);
     }
 
     return result;
+}
+
+/**
+ * Turns mentions of multiple figures into multiple \ref{fig:}'s.
+ * Note that for more than 2 figures, usage of the Oxford comma is expected.
+ *
+ * @param {string} match mentions of figures.
+ * @return {string} mentions of figures with latex syntax.
+ */
+function handleFigures(match) {
+    let joinWord = "";
+    if (match.includes(" and ")) {
+        joinWord = "and";
+    } else if (match.includes(" or ")) {
+        joinWord = "or";
+    } else {
+        throw new Error('No "and" / "or" word found in list of figures: ' + match);
+    }
+
+    if (match.includes(",")) {
+        return match.split(",").reduce((accumulator, currentValue, currentIndex, array) => {
+            if (currentIndex === array.length - 1) {
+                const joinLess = currentValue.replace(`${joinWord} `, "").trim();
+                return accumulator + `${joinWord} \\ref{fig:${joinLess}}`;
+            }
+            return accumulator + `\\ref{fig:${currentValue.trim()}}, `;
+        }, "");
+    }
+
+    return match.split(` ${joinWord} `).map(figure => `\\ref{fig:${figure.trim()}}`).join(` ${joinWord} `);
 }
 
 const filePath = process.argv[2];
