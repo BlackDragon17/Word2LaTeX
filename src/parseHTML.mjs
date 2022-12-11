@@ -125,19 +125,22 @@ function parseRootParagraph(element, result) {
             result.text = getHeadingString(
                 "section",
                 result.text.replace(/^\d+(\.\d+)* /, ""),
-                result.text.match(/^\d+(\.\d+)*(?= \w)/)?.[0]);
+                result.text.match(/^\d+(\.\d+)*(?= \w)/)?.[0]
+            );
             return result;
         case 14:
             result.text = getHeadingString(
                 "subsection",
                 result.text.replace(/^\d+(\.\d+)* /, ""),
-                result.text.match(/^\d+(\.\d+)*(?= \w)/)?.[0]);
+                result.text.match(/^\d+(\.\d+)*(?= \w)/)?.[0]
+            );
             return result;
         case 12:
             result.text = getHeadingString(
                 "subsubsection",
                 result.text.replace(/^\d+(\.\d+)* /, ""),
-                result.text.match(/^\d+(\.\d+)*(?= \w)/)?.[0]);
+                null
+            );
             return result;
     }
 

@@ -1,6 +1,6 @@
 # Word2LaTeX
 
-Quick and dirty Word to LaTeX snippet in-clipboard converter. Requires Windows, Powershell 7.2+, and Node 14+.
+Quick and dirty Word to LaTeX snippet in-clipboard converter. Requires Windows 10+, Powershell 7.2+, and Node 14+.
 
 ## Usage
 
@@ -12,4 +12,7 @@ Quick and dirty Word to LaTeX snippet in-clipboard converter. Requires Windows, 
 
 - Supports italics, bold, and unordered lists
 - Makes paragraphs with font sizes 18, 16, 14, 12 into chapters, sections, subsections, and subsubsections respectively
-- Replaces Word dashes with em-dashes, "\[citation\]" with "\cite{citation}", and "figure abc" with "figure \ref{fig:abc}"
+    - If a section is numbered (e.g., "_1.1 Introduction_"), the number is set as the section's `\label{}`
+- Replaces Word en–dashes with LaTeX em—dashes and `[citation]` with `\cite{citation}`
+- Links to figures: "_figure a and b_" becomes `figure \ref{fig:a} and \ref{fig:b}`
+- Links to sections: "_section 1.1_" becomes `section \ref{1.1}`
