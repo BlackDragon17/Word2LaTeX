@@ -153,9 +153,8 @@ function parseNodeContent(node) {
         // make `[xyz]` into `\cite{xyz}`
         result.text = result.text.replaceAll(/\[\w+(-\w+)*(, \w+(-\w+)*)*\]/g, match => `\\cite{${match.slice(1, -1)}}`);
         // make `figure xyz` into `\ref{fig:xyz}`
-        result.text = result.text.replaceAll(/(?<=[Ff]igure )\w+(-\w+)*(\.\w+)?/g, match => `\\ref{fig:${match}}`);
         result.text = result.text.replaceAll(
-            /(?<=[Ff]igures )(\w+(-\w+)*(\.\w+)?)(, (\w+(-\w+)*(\.\w+)?))*(,? and (\w+(-\w+)*(\.\w+)?))/g,
+            /(?<=[Ff]igures? )(\w+(-\w+)*(\.\w+)?)((, (\w+(-\w+)*(\.\w+)?))*(,? (and|or) (\w+(-\w+)*(\.\w+)?)))?/g,
             match => handleFigures(match)
         );
     } else if (node.nodeType === window.Node.ELEMENT_NODE) {
@@ -166,7 +165,7 @@ function parseNodeContent(node) {
 }
 
 /**
- * Turns mentions of multiple figures into multiple \ref{fig:}'s.
+ * Turns mentions of one or more figures into \ref{fig:}'s accordingly.
  * Note that for more than 2 figures, usage of the Oxford comma is expected.
  *
  * @param {string} match mentions of figures.
@@ -179,7 +178,7 @@ function handleFigures(match) {
     } else if (match.includes(" or ")) {
         joinWord = "or";
     } else {
-        throw new Error('No "and" / "or" word found in list of figures: ' + match);
+        return `\\ref{fig:${match}}`;
     }
 
     if (match.includes(",")) {
