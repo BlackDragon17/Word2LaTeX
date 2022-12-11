@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import ParseResult from "./ParseResult.mjs";
 
+const sectionNames = ["chapter", "section", "subsection", "subsubsection"];
+
 /**
  * Returns a new string, cleaned of excess whitespaces and newlines.
  *
@@ -12,6 +14,16 @@ import ParseResult from "./ParseResult.mjs";
 function cleanString(val) {
     return val.replaceAll("\n", " ")
         .replace(/\s{2,}/g, " ");
+}
+
+/**
+ * Turns heading titles (with the leading numbers already removed) into kebab-case labels.
+ *
+ * @param {string} heading normal heading.
+ * @returns {string} kebab-case heading label.
+ */
+function headingToLabel(heading) {
+    return heading.trim().toLowerCase().replace(" ", "-");
 }
 
 /**
@@ -43,11 +55,9 @@ function parseElementContent(element, isRoot = false) {
     const result = new ParseResult();
 
     for (let i = 0; i < element.childNodes.length; i++) {
-        const isLastNode = i === element.childNodes.length - 1;
         const resultPart = parseNodeContent(element.childNodes[i]);
 
         result.text += resultPart.text;
-
         if (result.fontSize < resultPart.fontSize) {
             result.fontSize = resultPart.fontSize;
         }
@@ -98,19 +108,19 @@ function parseRootParagraph(element, result) {
     // Handle headings
     switch (result.fontSize) {
         case 18:
-            result.text = result.text.replace(/Chapter \d+: /, "");
-            result.text = `\\chapter{${result.text}}\n\n`;
+            result.text = result.text.replace(/^Chapter \d+: /, "");
+            result.text = `\\chapter{${result.text}} \\label{${headingToLabel(result.text)}}\n\n`;
             return result;
         case 16:
-            result.text = result.text.replace(/(\d.)+\d /, "");
-            result.text = `\\section{${result.text}}\n\n`;
+            result.text = result.text.replace(/^(\d.)+\d /, "");
+            result.text = `\\section{${result.text}} \\label{${headingToLabel(result.text)}}\n\n`;
             return result;
         case 14:
-            result.text = result.text.replace(/(\d.)+\d /, "");
-            result.text = `\\subsection{${result.text}}\n\n`;
+            result.text = result.text.replace(/^(\d.)+\d /, "");
+            result.text = `\\subsection{${result.text}} \\label{${headingToLabel(result.text)}}\n\n`;
             return result;
         case 12:
-            result.text = `\\subsubsection{${result.text}}\n\n`;
+            result.text = `\\subsubsection{${result.text}} \\label{${headingToLabel(result.text)}}\n\n`;
             return result;
     }
 
@@ -152,11 +162,13 @@ function parseNodeContent(node) {
         result.text = result.text.replaceAll(" – ", "\\textemdash{}");
         // make `[xyz]` into `\cite{xyz}`
         result.text = result.text.replaceAll(/\[\w+(-\w+)*(, \w+(-\w+)*)*\]/g, match => `\\cite{${match.slice(1, -1)}}`);
-        // make `figure xyz` into `\ref{fig:xyz}`
+        // make `figure xyz` into `figure \ref{fig:xyz}`
         result.text = result.text.replaceAll(
             /(?<=[Ff]igures? )(\w+(-\w+)*(\.\w+)?)((, (\w+(-\w+)*(\.\w+)?))*(,? (and|or) (\w+(-\w+)*(\.\w+)?)))?/g,
             match => handleFigures(match)
         );
+        // make `section xyz` into `section \ref{xyz}`
+        // (?<=(section|chapter) )\w+((-|’)\w+)*
     } else if (node.nodeType === window.Node.ELEMENT_NODE) {
         result = parseElementContent(node);
     }
@@ -172,6 +184,7 @@ function parseNodeContent(node) {
  * @return {string} mentions of figures with latex syntax.
  */
 function handleFigures(match) {
+    // handle 1 figure and set joinWord
     let joinWord = "";
     if (match.includes(" and ")) {
         joinWord = "and";
@@ -181,6 +194,7 @@ function handleFigures(match) {
         return `\\ref{fig:${match}}`;
     }
 
+    // handle >2 figures
     if (match.includes(",")) {
         return match.split(",").reduce((accumulator, currentValue, currentIndex, array) => {
             if (currentIndex === array.length - 1) {
@@ -191,7 +205,12 @@ function handleFigures(match) {
         }, "");
     }
 
-    return match.split(` ${joinWord} `).map(figure => `\\ref{fig:${figure.trim()}}`).join(` ${joinWord} `);
+    // handle 2 figures and catch accidental detection of a sectionName
+    const figures = match.split(` ${joinWord} `);
+    if (sectionNames.some(name => figures.includes(name))) {
+        return `\\ref{fig:${figures[0].trim()}} ${joinWord} ${figures[1].trim()}`
+    }
+    return figures.map((figure) => `\\ref{fig:${figure.trim()}}`).join(` ${joinWord} `);
 }
 
 const filePath = process.argv[2];
