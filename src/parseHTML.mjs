@@ -3,9 +3,6 @@ import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import ParseResult from "./ParseResult.mjs";
 
-const openingChars = ["(", "“"];
-const closingChars = [")", ",", ".", ";", "”"];
-
 /**
  * Returns a new string, cleaned of excess whitespaces and newlines.
  *
@@ -14,8 +11,7 @@ const closingChars = [")", ",", ".", ";", "”"];
  */
 function cleanString(val) {
     return val.replaceAll("\n", " ")
-        .replace(/\s{2,}/g, " ")
-        .trim();
+        .replace(/\s{2,}/g, " ");
 }
 
 /**
@@ -30,6 +26,8 @@ function parseRootParagraphs(rootParagraphs) {
     for (const paragraph of rootParagraphs) {
         finalLatex += parseElementContent(paragraph, true).text;
     }
+
+    finalLatex = finalLatex.replace(/\n\n$/, "");
 
     return finalLatex;
 }
@@ -48,9 +46,6 @@ function parseElementContent(element, isRoot = false) {
         const isLastNode = i === element.childNodes.length - 1;
         const resultPart = parseNodeContent(element.childNodes[i], isLastNode);
 
-        if (result.text && resultPart.text && closingChars.some(char => char === resultPart.text[0])) {
-            result.text = result.text.trimEnd();
-        }
         result.text += resultPart.text;
 
         if (result.fontSize < resultPart.fontSize) {
@@ -58,7 +53,6 @@ function parseElementContent(element, isRoot = false) {
         }
     }
 
-    result.text = cleanString(result.text);
     const elementFontSize = +element.style.fontSize?.slice(0, -2);
     if (elementFontSize && elementFontSize > result.fontSize) {
         result.fontSize = elementFontSize;
@@ -95,6 +89,8 @@ function parseElementContent(element, isRoot = false) {
  * @returns {ParseResult} the final result.
  */
 function parseRootParagraph(element, result) {
+    result.text = result.text.trim();
+
     if (!result.text) {
         return result;
     }
@@ -102,16 +98,16 @@ function parseRootParagraph(element, result) {
     // Handle headings
     switch (result.fontSize) {
         case 18:
-            result.text = result.text.replace(/Chapter \d+: /, "\\chapter{");
-            result.text += "}\n\n";
+            result.text = result.text.replace(/Chapter \d+: /, "");
+            result.text = `\\chapter{${result.text}}\n\n`;
             return result;
         case 16:
-            result.text = result.text.replace(/(\d.)+\d /, "\\section{");
-            result.text += "}\n\n";
+            result.text = result.text.replace(/(\d.)+\d /, "");
+            result.text = `\\section{${result.text}}\n\n`;
             return result;
         case 14:
-            result.text = result.text.replace(/(\d.)+\d /, "\\subsection{");
-            result.text += "}\n\n";
+            result.text = result.text.replace(/(\d.)+\d /, "");
+            result.text = `\\subsection{${result.text}}\n\n`;
             return result;
         case 12:
             result.text = `\\subsubsection{${result.text}}\n\n`;
@@ -153,18 +149,14 @@ function parseNodeContent(node, isLastNode) {
 
     if (node.nodeType === window.Node.TEXT_NODE) {
         result.text = cleanString(node.data);
-        result.text = result.text.replaceAll(/\[\w+(-\w+)*(, \w+(-\w+)*)*\]/g, match => `\\cite{${match.slice(1, -1)}}`);
         result.text = result.text.replaceAll(" – ", "\\textemdash{}");
-        result.text = result.text.replaceAll(/(?<=[Ff]igure )\w[\w|-]+\w.\w+/g, match => `\\ref{fig:${match}}`);
+        result.text = result.text.replaceAll(/\[\w+(-\w+)*(, \w+(-\w+)*)*\]/g, match => `\\cite{${match.slice(1, -1)}}`);
+        result.text = result.text.replaceAll(/(?<=[Ff]igure )\w+(-\w+)*(\.\w+)?/g, match => `\\ref{fig:${match}}`);
+        result.text = cleanString(result.text);
     } else if (node.nodeType === window.Node.ELEMENT_NODE) {
         result = parseElementContent(node);
     }
 
-    if (isLastNode || openingChars.some(char => char === result.text[result.text.length - 1])) {
-        return result;
-    }
-
-    result.text += " ";
     return result;
 }
 
