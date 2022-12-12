@@ -2,36 +2,7 @@ import clipboard from "clipboardy";
 import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import ParseResult from "./ParseResult.mjs";
-
-const sectionNames = ["chapter", "section", "subsection", "subsubsection"];
-
-/**
- * Returns a new string, cleaned of excess whitespaces and newlines.
- *
- * @param {string} val string to clean.
- * @returns {string} new cleaned string.
- */
-function cleanString(val) {
-    return val.replaceAll("\n", " ")
-        .replace(/\s{2,}/g, " ");
-}
-
-/**
- * Produces a Latex heading with a label.
- *
- * @param {string} headingType the heading type to use (see {@link sectionNames}).
- * @param {string} heading the heading text.
- * @param {string|null} label the heading label. Only added if not null.
- * @return {string} a heading in Latex syntax with a label.
- */
-function getHeadingString(headingType, heading, label) {
-    let result = `\\${headingType}{${heading.trim()}}`;
-    if (label) {
-        result += ` \\label{${label.trim()}}`;
-    }
-    result += "\n\n";
-    return result;
-}
+import { cleanString, getHeadingString, handleFigures } from "./util.mjs";
 
 /**
  * Iterates over the paragraph elements at the root of the document.
@@ -99,6 +70,24 @@ function parseElementContent(element, isRoot = false) {
 }
 
 /**
+ * Parses the content of a child-node. Leaf of the recursion tree when Node = Text.
+ *
+ * @param {Node} node node to parse.
+ * @returns {ParseResult} content of the parsed node.
+ */
+function parseNodeContent(node) {
+    let result = new ParseResult();
+
+    if (node.nodeType === window.Node.TEXT_NODE) {
+        result.text = cleanString(node.data);
+    } else if (node.nodeType === window.Node.ELEMENT_NODE) {
+        result = parseElementContent(node);
+    }
+
+    return result;
+}
+
+/**
  * Logic for parsing the root paragraph elements.
  *
  * @param {HTMLParagraphElement} element element to parse.
@@ -144,6 +133,19 @@ function parseRootParagraph(element, result) {
             return result;
     }
 
+    // If not a heading, apply text transformations:
+    // Make en dash into em dash with no spaces
+    result.text = result.text.replaceAll(" – ", "\\textemdash{}");
+    // Make `[xyz]` into `\cite{xyz}`
+    result.text = result.text.replaceAll(/\[\w+(-\w+)*(, \w+(-\w+)*)*\]/g, match => `\\cite{${match.slice(1, -1)}}`);
+    // Make `figure xyz` into `figure \ref{fig:xyz}`
+    result.text = result.text.replaceAll(
+        /(?<=[Ff]igures? )(\w+(-\w+)*(\.\w+)?)((, (\w+(-\w+)*(\.\w+)?))*(,? (and|or) (\w+(-\w+)*(\.\w+)?)))?/g,
+        match => handleFigures(match)
+    );
+    // Make `section xyz` into `section \ref{xyz}`
+    result.text = result.text.replaceAll(/(?<=([Ss]ection|[Cc]hapter) )\d+(\.\d+)*/g, match => `\\ref{${match}}`);
+
     // Handle unsorted lists
     switch (element.className) {
         case "MsoListParagraphCxSpFirst":
@@ -165,72 +167,6 @@ function parseRootParagraph(element, result) {
 
     result.text += "\n\n";
     return result;
-}
-
-/**
- * Parses the content of a child-node. Leaf of the recursion tree when Node = Text.
- *
- * @param {Node} node node to parse.
- * @returns {ParseResult} content of the parsed node.
- */
-function parseNodeContent(node) {
-    let result = new ParseResult();
-
-    if (node.nodeType === window.Node.TEXT_NODE) {
-        result.text = cleanString(node.data);
-        // make en dash into em dash with no spaces
-        result.text = result.text.replaceAll(" – ", "\\textemdash{}");
-        // make `[xyz]` into `\cite{xyz}`
-        result.text = result.text.replaceAll(/\[\w+(-\w+)*(, \w+(-\w+)*)*\]/g, match => `\\cite{${match.slice(1, -1)}}`);
-        // make `figure xyz` into `figure \ref{fig:xyz}`
-        result.text = result.text.replaceAll(
-            /(?<=[Ff]igures? )(\w+(-\w+)*(\.\w+)?)((, (\w+(-\w+)*(\.\w+)?))*(,? (and|or) (\w+(-\w+)*(\.\w+)?)))?/g,
-            match => handleFigures(match)
-        );
-        // make `section xyz` into `section \ref{xyz}`
-        result.text = result.text.replaceAll(/(?<=(section|chapter) )\d+(\.\d+)*/g, match => `\\ref{${match}}`);
-    } else if (node.nodeType === window.Node.ELEMENT_NODE) {
-        result = parseElementContent(node);
-    }
-
-    return result;
-}
-
-/**
- * Turns mentions of one or more figures into \ref{fig:}'s accordingly.
- * Note that for more than 2 figures, usage of the Oxford comma is expected.
- *
- * @param {string} match mentions of figures.
- * @return {string} mentions of figures with latex syntax.
- */
-function handleFigures(match) {
-    // handle 1 figure and set joinWord
-    let joinWord = "";
-    if (match.includes(" and ")) {
-        joinWord = "and";
-    } else if (match.includes(" or ")) {
-        joinWord = "or";
-    } else {
-        return `\\ref{fig:${match}}`;
-    }
-
-    // handle >2 figures
-    if (match.includes(",")) {
-        return match.split(",").reduce((accumulator, currentValue, currentIndex, array) => {
-            if (currentIndex === array.length - 1) {
-                const joinLess = currentValue.replace(`${joinWord} `, "").trim();
-                return accumulator + `${joinWord} \\ref{fig:${joinLess}}`;
-            }
-            return accumulator + `\\ref{fig:${currentValue.trim()}}, `;
-        }, "");
-    }
-
-    // handle 2 figures and catch accidental detection of a sectionName
-    const figures = match.split(` ${joinWord} `);
-    if (sectionNames.some(name => figures.includes(name))) {
-        return `\\ref{fig:${figures[0].trim()}} ${joinWord} ${figures[1].trim()}`
-    }
-    return figures.map((figure) => `\\ref{fig:${figure.trim()}}`).join(` ${joinWord} `);
 }
 
 const filePath = process.argv[2];
