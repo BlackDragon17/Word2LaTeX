@@ -13,6 +13,6 @@ Quick and dirty Word to LaTeX snippet in-clipboard converter. Requires Windows 1
 - Supports italics, bold, and unordered lists
 - Makes paragraphs with font sizes 18, 16, 14, 12 into chapters, sections, subsections, and subsubsections respectively
     - If a section is numbered (e.g., "_1.1 Introduction_"), the number is set as the section's `\label{}`
-- Replaces Word en–dashes with LaTeX em—dashes and `[citation]` with `\cite{citation}`
-- Links to figures: "_figure a and b_" becomes `figure \ref{fig:a} and \ref{fig:b}`
+- Replaces Word en–dashes with LaTeX em—dashes and _\[citation\]_ with `\cite{citation}`
+- Links to figures: "_figure a.jpg and b.png_" becomes `figure \ref{fig:a.jpg} and \ref{fig:b.png}` (must include extension)
 - Links to sections: "_section 1.1_" becomes `section \ref{1.1}`

@@ -1,5 +1,3 @@
-const sectionNames = ["chapter", "section", "subsection", "subsubsection"];
-
 /**
  * Returns a new string, cleaned of excess whitespaces and newlines.
  *
@@ -14,7 +12,7 @@ export function cleanString(val) {
 /**
  * Produces a Latex heading with a label.
  *
- * @param {string} headingType the heading type to use (see {@link sectionNames}).
+ * @param {string} headingType the heading type to use.
  * @param {string} heading the heading text.
  * @param {string|null} label the heading label. Only added if not null.
  * @return {string} a heading in Latex syntax with a label.
@@ -57,10 +55,6 @@ export function handleFigures(match) {
         }, "");
     }
 
-    // Handle 2 figures and catch accidental detection of a sectionName
-    const figures = match.split(` ${joinWord} `);
-    if (sectionNames.some(name => figures.includes(name))) {
-        return `\\ref{fig:${figures[0].trim()}} ${joinWord} ${figures[1].trim()}`
-    }
-    return figures.map((figure) => `\\ref{fig:${figure.trim()}}`).join(` ${joinWord} `);
+    // Handle 2 figures
+    return match.split(` ${joinWord} `).map(figure => `\\ref{fig:${figure.trim()}}`).join(` ${joinWord} `);
 }

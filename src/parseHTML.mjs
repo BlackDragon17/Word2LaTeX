@@ -140,7 +140,7 @@ function parseRootParagraph(element, result) {
     result.text = result.text.replaceAll(/\[\w+(-\w+)*(, \w+(-\w+)*)*\]/g, match => `\\cite{${match.slice(1, -1)}}`);
     // Make `figure xyz` into `figure \ref{fig:xyz}`
     result.text = result.text.replaceAll(
-        /(?<=[Ff]igures? )(\w+(-\w+)*(\.\w+)?)((, (\w+(-\w+)*(\.\w+)?))*(,? (and|or) (\w+(-\w+)*(\.\w+)?)))?/g,
+        /(?<=[Ff]igures? )(\w+(-\w+)*\.\w+)((, (\w+(-\w+)*\.\w+))*(,? (and|or) (\w+(-\w+)*\.\w+)))?/g,
         match => handleFigures(match)
     );
     // Make `section xyz` into `section \ref{xyz}`
