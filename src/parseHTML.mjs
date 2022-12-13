@@ -64,6 +64,12 @@ function parseElementContent(element, isRoot = false) {
             }
             return result;
 
+        case "SPAN":
+            if (element.style.fontFamily === "Consolas") {
+                result.text = `\\texttt{${result.text}}`;
+            }
+            return result;
+
         default:
             return result;
     }

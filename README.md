@@ -16,3 +16,4 @@ Quick and dirty Word to LaTeX snippet in-clipboard converter. Requires Windows 1
 - Replaces Word en–dashes with LaTeX em—dashes and _\[citation\]_ with `\cite{citation}`
 - Links to figures: "_figure a.jpg and b.png_" becomes `figure \ref{fig:a.jpg} and \ref{fig:b.png}` (must include extension)
 - Links to sections: "_section 1.1_" becomes `section \ref{1.1}`
+- Text with the font set to _Consolas_ becomes monospace `\texttt{text}`
