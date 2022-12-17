@@ -151,6 +151,8 @@ function parseRootParagraph(element, result) {
     );
     // Make `section xyz` into `section \ref{xyz}`
     result.text = result.text.replaceAll(/(?<=([Ss]ection|[Cc]hapter) )\d+(\.\d+)*/g, match => `\\ref{${match}}`);
+    // Replace `_` with `\_` (outside of citations and refs) so that Latex doesn't think it's a math formula
+    result.text = result.text.replaceAll(/(?<!\\(cite|ref){[\w.,\- ]+)_/g, "\\_");
 
     // Handle unsorted lists
     switch (element.className) {
