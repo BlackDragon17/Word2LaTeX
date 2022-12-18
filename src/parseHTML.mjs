@@ -14,7 +14,7 @@ function parseRootParagraphs(rootParagraphs) {
     let finalLatex = "";
 
     for (const paragraph of rootParagraphs) {
-        finalLatex += parseElementContent(paragraph, true).text;
+        finalLatex += parseElement(paragraph, true).text;
     }
 
     finalLatex = finalLatex.replace(/\n\n$/, "");
@@ -29,11 +29,11 @@ function parseRootParagraphs(rootParagraphs) {
  * @param {boolean} isRoot whether the current element is a root element.
  * @returns {ParseResult} content of the parsed element.
  */
-function parseElementContent(element, isRoot = false) {
+function parseElement(element, isRoot = false) {
     const result = new ParseResult();
 
     for (let i = 0; i < element.childNodes.length; i++) {
-        const resultPart = parseNodeContent(element.childNodes[i]);
+        const resultPart = parseNode(element.childNodes[i]);
 
         result.text += resultPart.text;
         if (result.fontSize < resultPart.fontSize) {
@@ -47,7 +47,7 @@ function parseElementContent(element, isRoot = false) {
     }
 
     if (isRoot) {
-        return parseRootParagraph(element, result);
+        return parseRootElement(element, result);
     }
     if (!result.text) {
         return result;
@@ -81,26 +81,26 @@ function parseElementContent(element, isRoot = false) {
  * @param {Node} node node to parse.
  * @returns {ParseResult} content of the parsed node.
  */
-function parseNodeContent(node) {
+function parseNode(node) {
     let result = new ParseResult();
 
     if (node.nodeType === window.Node.TEXT_NODE) {
         result.text = cleanString(node.data);
     } else if (node.nodeType === window.Node.ELEMENT_NODE) {
-        result = parseElementContent(node);
+        result = parseElement(node);
     }
 
     return result;
 }
 
 /**
- * Logic for parsing the root paragraph elements.
+ * Logic for parsing the root content elements.
  *
- * @param {HTMLParagraphElement} element element to parse.
+ * @param {HTMLElement} element element to parse.
  * @param {ParseResult} result the result object built from the paragraph's child nodes.
  * @returns {ParseResult} the final result.
  */
-function parseRootParagraph(element, result) {
+function parseRootElement(element, result) {
     result.text = result.text.trim();
 
     if (!result.text) {
@@ -191,7 +191,7 @@ if (!filePath) {
 const htmlFile = readFileSync(filePath, {encoding: "utf8"});
 const {window} = new JSDOM(htmlFile);
 
-const paragraphs = window.document.querySelectorAll("html > body > p");
+const paragraphs = window.document.querySelectorAll("html > body > p, html > body > span");
 const latex = parseRootParagraphs(paragraphs);
 
 clipboard.writeSync(latex);
