@@ -2,7 +2,7 @@ import clipboard from "clipboardy";
 import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import ParseResult from "./ParseResult.mjs";
-import { cleanString, getHeadingString, handleFigures } from "./util.mjs";
+import { cleanString, getHeadingString, getRefRegex, handleRefMatches } from "./util.mjs";
 
 /**
  * Iterates over the paragraph elements at the root of the document.
@@ -139,20 +139,26 @@ function parseRootParagraph(element, result) {
             return result;
     }
 
+
     // If not a heading, apply text transformations:
+
     // Make en dash into em dash with no spaces
     result.text = result.text.replaceAll(" – ", "\\textemdash{}");
+
     // Make `[xyz]` into `\cite{xyz}`
     result.text = result.text.replaceAll(/\[\w+(-\w+)*(, \w+(-\w+)*)*\]/g, match => `\\cite{${match.slice(1, -1)}}`);
+
     // Make `figure xyz` into `figure \ref{fig:xyz}`
-    result.text = result.text.replaceAll(
-        /(?<=[Ff]igures? )(\w+(-\w+)*\.\w+)((, (\w+(-\w+)*\.\w+))*(,? (and|or) (\w+(-\w+)*\.\w+)))?/g,
-        match => handleFigures(match)
-    );
+    const figureRegex = getRefRegex("[Ff]igures?", String.raw`\w+(-\w+)*\.\w+`, "g");
+    result.text = result.text.replaceAll(figureRegex, match => handleRefMatches(match, "fig"));
+
     // Make `section xyz` into `section \ref{xyz}`
-    result.text = result.text.replaceAll(/(?<=([Ss]ection|[Cc]hapter) )\d+(\.\d+)*/g, match => `\\ref{${match}}`);
+    const sectionRegex = getRefRegex("([Ss]ections?|[Cc]hapters?)", String.raw`\d+(\.\d+)*`, "g");
+    result.text = result.text.replaceAll(sectionRegex, match => handleRefMatches(match));
+
     // Replace `_` with `\_` (outside of citations and refs) so that Latex doesn't think it's a math formula
     result.text = result.text.replaceAll(/(?<!\\(cite|ref){[\w.,\- ]+)_/g, "\\_");
+
 
     // Handle unsorted lists
     switch (element.className) {

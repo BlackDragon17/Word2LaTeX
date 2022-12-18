@@ -27,34 +27,57 @@ export function getHeadingString(headingType, heading, label) {
 }
 
 /**
- * Turns mentions of one or more figures into \ref{fig:}'s accordingly.
- * Note that for more than 2 figures, usage of the Oxford comma is expected.
+ * Creates the regex for matching 1-n oxford-comma seperated values.
+ *
+ * @param {string} keywordMatcher regex as string for the keyword which begins the matching, e.g. "[Ff]igures?".
+ * @param {string} valueMatcher regex as string for the values to be matched.
+ * @param {string} [flags] which flags to add to the final regex.
+ * @returns {RegExp} regex for match 1-n of the values after the keyword.
+ */
+export function getRefRegex(keywordMatcher, valueMatcher, flags) {
+    if (!keywordMatcher || !valueMatcher) {
+        throw new Error("Bad parameters!");
+    }
+
+    if (flags) {
+        return RegExp(`(?<=${keywordMatcher} )(${valueMatcher})((, ${valueMatcher})*(,? (and|or) ${valueMatcher}))?`, flags);
+    }
+    return RegExp(`(?<=${keywordMatcher} )(${valueMatcher})((, ${valueMatcher})*(,? (and|or) ${valueMatcher}))?`);
+}
+
+/**
+ * Turns mentions of one or more labels into \ref{}'s accordingly.
+ * Note that when mentioning more than 2 labels, usage of the Oxford comma is expected.
+ * E.g., "figures a1.png, a2.png, and a3.png".
  *
  * @param {string} match mentions of figures.
- * @return {string} mentions of figures with latex syntax.
+ * @param {string} [prefix] the prefix to include in the label reference.
+ * @return {string} label references in latex syntax.
  */
-export function handleFigures(match) {
-    // Handle 1 figure and set joinWord
+export function handleRefMatches(match, prefix) {
+    const prefixColon = prefix ? prefix + ":" : "";
+
+    // Handle 1 value and set joinWord
     let joinWord = "";
     if (match.includes(" and ")) {
         joinWord = "and";
     } else if (match.includes(" or ")) {
         joinWord = "or";
     } else {
-        return `\\ref{fig:${match}}`;
+        return `\\ref{${prefixColon}${match}}`;
     }
 
-    // Handle >2 figures
+    // Handle >2 values
     if (match.includes(",")) {
         return match.split(",").reduce((accumulator, currentValue, currentIndex, array) => {
             if (currentIndex === array.length - 1) {
-                const joinLess = currentValue.replace(`${joinWord} `, "").trim();
-                return accumulator + `${joinWord} \\ref{fig:${joinLess}}`;
+                const joinWordLess = currentValue.replace(`${joinWord} `, "").trim();
+                return accumulator + `${joinWord} \\ref{${prefixColon}${joinWordLess}}`;
             }
-            return accumulator + `\\ref{fig:${currentValue.trim()}}, `;
+            return accumulator + `\\ref{${prefixColon}${currentValue.trim()}}, `;
         }, "");
     }
 
-    // Handle 2 figures
-    return match.split(` ${joinWord} `).map(figure => `\\ref{fig:${figure.trim()}}`).join(` ${joinWord} `);
+    // Handle 2 values
+    return match.split(` ${joinWord} `).map(figure => `\\ref{${prefixColon}${figure.trim()}}`).join(` ${joinWord} `);
 }
