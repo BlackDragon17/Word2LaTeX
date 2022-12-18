@@ -49,7 +49,9 @@ function parseElement(element, isRoot = false) {
     if (isRoot) {
         return parseRootElement(element, result);
     }
-    if (!result.text) {
+
+    if (!result.text || result.text === " ") {
+        result.text = "";
         return result;
     }
 

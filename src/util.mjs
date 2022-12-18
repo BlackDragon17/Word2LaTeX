@@ -1,12 +1,12 @@
 /**
- * Returns a new string, cleaned of excess whitespaces and newlines.
+ * Normalizes whitespace characters to normal spaces and removes excess amounts of them.
  *
  * @param {string} val string to clean.
  * @returns {string} new cleaned string.
  */
 export function cleanString(val) {
-    return val.replaceAll("\n", " ")
-        .replace(/\s{2,}/g, " ");
+    return val.replaceAll(/\s/g, " ")
+        .replaceAll(/\s{2,}/g, " ");
 }
 
 /**
