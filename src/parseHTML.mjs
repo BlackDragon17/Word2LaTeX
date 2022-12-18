@@ -150,16 +150,20 @@ function parseRootElement(element, result) {
     // Make `[xyz]` into `\cite{xyz}`
     result.text = result.text.replaceAll(/\[\w+(-\w+)*(, \w+(-\w+)*)*\]/g, match => `\\cite{${match.slice(1, -1)}}`);
 
-    // Make `figure xyz` into `figure \ref{fig:xyz}`
+    // Make `figure abc.png` into `figure \ref{fig:abc.png}`
     const figureRegex = getRefRegex("[Ff]igures?", String.raw`\w+(-\w+)*\.\w+`, "g");
     result.text = result.text.replaceAll(figureRegex, match => handleRefMatches(match, "fig"));
 
-    // Make `section xyz` into `section \ref{xyz}`
+    // Make `section 1.2.3` into `section \ref{1.2.3}`
     const sectionRegex = getRefRegex("([Ss]ections?|[Cc]hapters?)", String.raw`\d+(\.\d+)*`, "g");
     result.text = result.text.replaceAll(sectionRegex, match => handleRefMatches(match));
 
+    // Make `listing abc-xyz` into `listing \ref{listing:abc-xyz}`
+    const listingRegex = getRefRegex("[Ll]istings?", String.raw`\w+(-\w+)+`, "g");
+    result.text = result.text.replaceAll(listingRegex, match => handleRefMatches(match, "listing"));
+
     // Replace `_` with `\_` (outside of citations and refs) so that Latex doesn't think it's a math formula
-    result.text = result.text.replaceAll(/(?<!\\(cite|ref){[\w.,\- ]+)_/g, "\\_");
+    result.text = result.text.replaceAll(/(?<!\\(cite|ref){[\w.,:\- ]+)_/g, "\\_");
 
 
     // Handle unsorted lists
