@@ -11,5 +11,6 @@ export default class ParseResult {
     constructor(text = "", fontSize = 0) {
         this.text = text;
         this.fontSize = fontSize;
+        this.trimNext = false;
     }
 }

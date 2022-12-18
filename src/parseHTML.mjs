@@ -32,12 +32,17 @@ function parseRootParagraphs(rootParagraphs) {
 function parseElement(element, isRoot = false) {
     const result = new ParseResult();
 
+    const childResults = [];
     for (let i = 0; i < element.childNodes.length; i++) {
-        const resultPart = parseNode(element.childNodes[i]);
+        childResults[i] = parseNode(element.childNodes[i]);
 
-        result.text += resultPart.text;
-        if (result.fontSize < resultPart.fontSize) {
-            result.fontSize = resultPart.fontSize;
+        if (childResults[i - 1]?.trimNext) {
+            childResults[i].text = childResults[i].text.trimStart();
+        }
+        result.text += childResults[i].text;
+
+        if (result.fontSize < childResults[i].fontSize) {
+            result.fontSize = childResults[i].fontSize;
         }
     }
 
@@ -48,6 +53,12 @@ function parseElement(element, isRoot = false) {
 
     if (isRoot) {
         return parseRootElement(element, result);
+    }
+
+    if (element.nodeName === "BR") {
+        result.text = "\\\\\n";
+        result.trimNext = true;
+        return result;
     }
 
     if (!result.text || result.text === " ") {

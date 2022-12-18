@@ -11,6 +11,7 @@ Quick and dirty Word to LaTeX snippet in-clipboard converter. Requires Windows 1
 ## Features
 
 - Supports italics, bold, and unordered lists
+- Translates Word new-line (_Shift+Enter_) to LaTeX new-line (`\\`)
 - Makes paragraphs with font sizes 18, 16, 14, 12 into chapters, sections, subsections, and subsubsections respectively
     - If a section is numbered (e.g., "_1.1 Introduction_"), the number is set as the section's `\label{}`
 - Replaces Word en–dashes with LaTeX em—dashes and _\[citation\]_ with `\cite{citation}`
