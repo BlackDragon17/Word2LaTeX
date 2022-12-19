@@ -1,12 +1,16 @@
 {
   "name": "word2latex",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "BlackDragon17",
   "description": "Converts copied Word document fragments to LaTeX in the clipboard.",
   "homepage": "https://github.com/BlackDragon17/Word2LaTeX",
-  "main": "src/RunMe.ps1",
+  "main": "src/parseHTML.mjs",
+  "scripts": {
+    "convert": "node src/parseHTML.mjs"
+  },
   "dependencies": {
     "clipboardy": "^3.0.0",
+    "execa": "^6.1.0",
     "jsdom": "^20.0.3"
   }
 }

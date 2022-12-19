@@ -1,6 +1,6 @@
 # Word2LaTeX
 
-Quick and dirty Word to LaTeX snippet in-clipboard converter. Requires Windows 10+, Powershell 7.2+, and Node 14+.
+Quick and dirty Word to LaTeX snippet in-clipboard converter. Requires Windows 10+, Powershell 7+, and Node 14.20+.
 
 ## Usage
 

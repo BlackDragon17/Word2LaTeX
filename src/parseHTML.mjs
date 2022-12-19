@@ -1,6 +1,7 @@
 import clipboard from "clipboardy";
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import { JSDOM } from "jsdom";
+import { execa } from "execa";
 import ParseResult from "./ParseResult.mjs";
 import { cleanString, getHeadingString, getRefRegex, handleRefMatches } from "./util.mjs";
 
@@ -201,14 +202,17 @@ function parseRootElement(element, result) {
     return result;
 }
 
-const filePath = process.argv[2];
-if (!filePath) {
-    throw new Error("No HTML temp file path given!");
+const tempFilePath = "./tempHtmlFile.html";
+
+await execa("pwsh", ["-NoLogo", "-File",  "D:/Code/Node.js/Word2LaTeX/src/GetClipboard.ps1", "-TempFilePath", tempFilePath]);
+
+const htmlFile = readFileSync(tempFilePath, {encoding: "utf8"});
+if (!htmlFile) {
+    throw new Error("No Word-HTML file generated!");
 }
+rmSync(tempFilePath);
 
-const htmlFile = readFileSync(filePath, {encoding: "utf8"});
 const {window} = new JSDOM(htmlFile);
-
 const paragraphs = window.document.querySelectorAll("html > body > p, html > body > span");
 const latex = parseRootParagraphs(paragraphs);
 
