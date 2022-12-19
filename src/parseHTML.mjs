@@ -99,6 +99,7 @@ function parseNode(node) {
 
     if (node.nodeType === window.Node.TEXT_NODE) {
         result.text = cleanString(node.data);
+        result.text = result.text.replaceAll("#", "\\#");
     } else if (node.nodeType === window.Node.ELEMENT_NODE) {
         result = parseElement(node);
     }
