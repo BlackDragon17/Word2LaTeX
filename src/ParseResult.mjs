@@ -12,5 +12,6 @@ export default class ParseResult {
         this.text = text;
         this.fontSize = fontSize;
         this.trimNext = false;
+        this.parsedInnerFootnoteRef = false;
     }
 }

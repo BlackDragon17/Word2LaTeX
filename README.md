@@ -19,3 +19,5 @@ Quick and dirty Word to LaTeX snippet in-clipboard converter. Requires Windows 1
 - Links to figures: "_figure a.jpg and b.png_" becomes `figure \ref{fig:a.jpg} and \ref{fig:b.png}` (must include extension)
 - Links to sections: "_section 1.1_" becomes `section \ref{1.1}`
 - Links to listings: "_listing foo-bar_" becomes `listing \ref{listing:foo-bar}`
+- Supports footnotes
+  - Only simple text and links inside footnote content is parsed

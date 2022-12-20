@@ -45,6 +45,8 @@ function parseElement(element, isRoot = false) {
         if (result.fontSize < childResults[i].fontSize) {
             result.fontSize = childResults[i].fontSize;
         }
+
+        result.parsedInnerFootnoteRef = childResults[i].parsedInnerFootnoteRef || result.parsedInnerFootnoteRef;
     }
 
     const elementFontSize = +element.style.fontSize?.slice(0, -2);
@@ -79,6 +81,16 @@ function parseElement(element, isRoot = false) {
             return result;
 
         case "SPAN":
+            if (element.className === "MsoFootnoteReference") {
+                if (!result.parsedInnerFootnoteRef) {
+                    result.parsedInnerFootnoteRef = true;
+                    return result;
+                }
+                result.text = globalThis.footnotes[result.text.trim()] || "";
+                result.parsedInnerFootnoteRef = false;
+                return result;
+            }
+
             if (element.style.fontFamily === "Consolas") {
                 result.text = `\\texttt{${result.text}}`;
             }
@@ -202,9 +214,46 @@ function parseRootElement(element, result) {
     return result;
 }
 
+/**
+ * Extracts the index number and content of a footnote element and saves it to `globalThis.footnotes`.
+ *
+ * @param {HTMLParagraphElement} element a footnote element as found in the list at the bottom of a Word HTML file.
+ */
+function parseFootnoteElement(element) {
+    let index = "";
+    let content = "";
+    for (const childEl of element.children) {
+        const indexEl = childEl.querySelector("span[class='MsoFootnoteReference']");
+        if (indexEl) {
+            // Since innerText is not implemented in JSDOM 20.0, we use textContent instead
+            index = indexEl.textContent.trim();
+            continue;
+        } else if (!index) {
+            continue;
+        }
+
+        switch (childEl.nodeName) {
+            case "SPAN":
+                content += childEl.textContent;
+                break;
+            case "A":
+                content += `\\url{${childEl.textContent}}`;
+                break;
+        }
+    }
+
+    if (!index || !content) {
+        return;
+    }
+    content = `\\footnote{${content}}`;
+
+    globalThis.footnotes[index] = content;
+}
+
+
 const tempFilePath = "./tempHtmlFile.html";
 
-await execa("pwsh", ["-NoLogo", "-File",  "D:/Code/Node.js/Word2LaTeX/src/GetClipboard.ps1", "-TempFilePath", tempFilePath]);
+await execa("pwsh", ["-NoLogo", "-File",  "./GetClipboard.ps1", "-TempFilePath", tempFilePath]);
 
 const htmlFile = readFileSync(tempFilePath, {encoding: "utf8"});
 if (!htmlFile) {
@@ -213,6 +262,15 @@ if (!htmlFile) {
 rmSync(tempFilePath);
 
 const {window} = new JSDOM(htmlFile);
+
+globalThis.footnotes = {};
+const footnoteElements = window.document.querySelectorAll("html > body div[style='mso-element:footnote'] > p[class='MsoFootnoteText']");
+if (footnoteElements.length > 0) {
+    for (const footnoteEl of footnoteElements) {
+        parseFootnoteElement(footnoteEl);
+    }
+}
+
 const paragraphs = window.document.querySelectorAll("html > body > p, html > body > span");
 const latex = parseRootParagraphs(paragraphs);
 
