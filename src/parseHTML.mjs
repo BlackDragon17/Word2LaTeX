@@ -232,14 +232,7 @@ function parseFootnoteElement(element) {
             continue;
         }
 
-        switch (childEl.nodeName) {
-            case "SPAN":
-                content += childEl.textContent;
-                break;
-            case "A":
-                content += `\\url{${childEl.textContent}}`;
-                break;
-        }
+        content += parseFootnoteContent(childEl);
     }
 
     if (!index || !content) {
@@ -250,10 +243,37 @@ function parseFootnoteElement(element) {
     globalThis.footnotes[index] = content;
 }
 
+/**
+ * Parses the content of the footnote, which may consist of nested elements.
+ *
+ * @param {HTMLElement} element a content element inside the footnote paragraph.
+ * @returns {string} the string content of the element in LaTeX markup.
+ */
+function parseFootnoteContent(element) {
+    let content = "";
+
+    for (const childEl of element.children) {
+        content += parseFootnoteContent(childEl);
+    }
+
+    if (element.children.length <= 0) {
+        switch (element.nodeName) {
+            case "SPAN":
+                content += element.textContent;
+                break;
+            case "A":
+                content += `\\url{${element.textContent}}`;
+                break;
+        }
+    }
+
+    return content;
+}
+
 
 const tempFilePath = "./tempHtmlFile.html";
 
-await execa("pwsh", ["-NoLogo", "-File",  "./GetClipboard.ps1", "-TempFilePath", tempFilePath]);
+await execa("pwsh", ["-NoLogo", "-File", "./GetClipboard.ps1", "-TempFilePath", tempFilePath]);
 
 const htmlFile = readFileSync(tempFilePath, {encoding: "utf8"});
 if (!htmlFile) {
