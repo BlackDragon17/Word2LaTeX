@@ -112,7 +112,6 @@ function parseNode(node) {
 
     if (node.nodeType === window.Node.TEXT_NODE) {
         result.text = cleanString(node.data);
-        result.text = result.text.replaceAll("#", "\\#");
     } else if (node.nodeType === window.Node.ELEMENT_NODE) {
         result = parseElement(node);
     }
@@ -133,6 +132,10 @@ function parseRootElement(element, result) {
     if (!result.text) {
         return result;
     }
+
+    // Always escape hashes
+    result.text = result.text.replaceAll("#", "\\#");
+
 
     // Handle headings
     switch (result.fontSize) {
