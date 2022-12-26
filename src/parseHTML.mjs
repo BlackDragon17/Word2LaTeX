@@ -81,6 +81,7 @@ function parseElement(element, isRoot = false) {
             return result;
 
         case "SPAN":
+            // FIXME: Footnote references don't get recognized if they're in Consolas
             if (element.className === "MsoFootnoteReference") {
                 if (!result.parsedInnerFootnoteRef) {
                     result.parsedInnerFootnoteRef = true;
